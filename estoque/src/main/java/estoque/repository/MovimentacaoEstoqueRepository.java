@@ -4,4 +4,5 @@ import estoque.models.MovimentacaoEstoque;
 import org.springframework.data.repository.CrudRepository;
 
 public interface MovimentacaoEstoqueRepository extends CrudRepository<MovimentacaoEstoque, Long> {
+    Iterable<MovimentacaoEstoque> findByProdutoId(Long produtoId);
 }

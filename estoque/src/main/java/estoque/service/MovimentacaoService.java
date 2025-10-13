@@ -2,14 +2,15 @@ package estoque.service;
 
 import estoque.models.MovimentacaoEstoque;
 import estoque.models.Produto;
+import estoque.models.Usuario;
 import estoque.repository.MovimentacaoEstoqueRepository;
 import estoque.repository.ProdutoRepository;
 import estoque.repository.UsuarioRepository;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 import java.util.Optional;
 
@@ -26,9 +27,9 @@ public class MovimentacaoService {
     @Autowired
     private UsuarioRepository usuarioRepository;
 
-    private Long getUsuarioLogadoId() {
-        // adaptar depois
-        return 1L;
+    private Usuario getUsuarioLogado() {
+        return usuarioRepository.findById(1L)
+                .orElseThrow(() -> new RuntimeException("Usuário de registro (ID 1) não encontrado no BD. Crie o usuário 1."));
     }
 
     @Transactional
@@ -47,9 +48,10 @@ public class MovimentacaoService {
         produto.setQuantidadeEstoque(novaQuantidade);
         produtoRepository.save(produto);
 
+        movimentacao.setValorUnidadeHistorico(produto.getValorUnidade());
+
         movimentacao.setTipo("ENTRADA");
-        movimentacao.setUsuario(usuarioRepository.findById(getUsuarioLogadoId())
-                .orElseThrow(() -> new RuntimeException("Usuário de Log não encontrado!")));
+        movimentacao.setUsuario(getUsuarioLogado());
         movimentacaoRepository.save(movimentacao);
 
         return produto;
@@ -76,9 +78,10 @@ public class MovimentacaoService {
         produto.setQuantidadeEstoque(novaQuantidade);
         produtoRepository.save(produto);
 
+        movimentacao.setValorUnidadeHistorico(produto.getValorUnidade());
+
         movimentacao.setTipo("SAIDA");
-        movimentacao.setUsuario(usuarioRepository.findById(getUsuarioLogadoId())
-                .orElseThrow(() -> new RuntimeException("Usuário de Log não encontrado!")));
+        movimentacao.setUsuario(getUsuarioLogado());
         movimentacaoRepository.save(movimentacao);
 
         if (novaQuantidade <= produto.getEstoqueMinimo()) {
@@ -89,7 +92,10 @@ public class MovimentacaoService {
         return produto;
     }
 
-    public Iterable<MovimentacaoEstoque> listarMovimentacoes() {
+    public Iterable<MovimentacaoEstoque> listarMovimentacoes(Long produtoId) {
+        if (produtoId != null) {
+            return movimentacaoRepository.findByProdutoId(produtoId);
+        }
         return movimentacaoRepository.findAll();
     }
 }

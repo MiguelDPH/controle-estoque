@@ -48,7 +48,8 @@ public class MovimentacaoController {
     }
 
     @GetMapping
-    public ResponseEntity<Iterable<MovimentacaoEstoque>> listarMovimentacoes() {
-        return new ResponseEntity<>(movimentacaoService.listarMovimentacoes(), HttpStatus.OK);
+    public ResponseEntity<Iterable<MovimentacaoEstoque>> listarMovimentacoes(
+            @RequestParam(required = false) Long produtoId) {
+        return new ResponseEntity<>(movimentacaoService.listarMovimentacoes(produtoId), HttpStatus.OK);
     }
 }

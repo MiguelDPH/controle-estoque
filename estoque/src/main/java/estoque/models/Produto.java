@@ -34,7 +34,7 @@ public class Produto {
     @ManyToOne
     @JoinColumn(name = "categoria_id", nullable = false)
     @NotNull(message = "A categoria é obrigatória.")
-    private Categoria categoria; // RF01 (categoria)
+    private Categoria categoria;
 
     public Produto() {
         this.quantidadeEstoque = 0;

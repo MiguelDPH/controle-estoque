@@ -20,21 +20,20 @@ public class MovimentacaoEstoque {
 
     @ManyToOne
     @JoinColumn(name = "usuario_id", nullable = false)
-    @NotNull(message = "O usuário que registrou a movimentação é obrigatório.")
     private Usuario usuario;
 
     @NotNull(message = "A quantidade é obrigatória.")
     @Min(value = 1, message = "A quantidade deve ser maior que zero.")
     private Integer quantidade;
 
-    @NotNull(message = "O tipo de movimentação é obrigatório.")
-    @Size(min = 5, max = 7)
     private String tipo;
 
     @Column(nullable = false, updatable = false)
     private LocalDateTime dataHora;
 
     private String observacao;
+
+    private Float valorUnidadeHistorico;
 
     @PrePersist
     protected void onCreate() {
@@ -55,4 +54,6 @@ public class MovimentacaoEstoque {
     public void setDataHora(LocalDateTime dataHora) { this.dataHora = dataHora; }
     public String getObservacao() { return observacao; }
     public void setObservacao(String observacao) { this.observacao = observacao; }
+    public Float getValorUnidadeHistorico() { return valorUnidadeHistorico; }
+    public void setValorUnidadeHistorico(Float valorUnidadeHistorico) { this.valorUnidadeHistorico = valorUnidadeHistorico; }
 }

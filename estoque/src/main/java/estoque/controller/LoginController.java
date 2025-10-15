@@ -10,9 +10,18 @@ import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.validation.BindingResult;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RestController;
+import estoque.security.CustomUserDetails;
+import estoque.security.CustomUserDetailsService;
+import estoque.security.JwtUtil;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.userdetails.UserDetails;
+import org.springframework.security.core.userdetails.UsernameNotFoundException;
 import org.springframework.web.bind.annotation.RestController;
 
 @RestController
@@ -25,19 +34,58 @@ public class LoginController {
     @Autowired
     private LogDeAcoesRepository logDeAcoesRepository;
 
-    @PostMapping("/logar")
-    public ResponseEntity<String> loginUsuario(@RequestBody Usuario usuario) {
-        Usuario usuarioLogado = this.usuarioRepository.login(usuario.getEmail(),usuario.getSenha());
+    @Autowired
+    private PasswordEncoder passwordEncoder;
 
-        if (usuarioLogado !=null) {
-            log.info("Login bem-sucedido para o email: {}", usuario.getEmail());
-            logDeAcoesRepository.save(new LogDeAcoes(usuarioLogado, "LOGIN_SUCESSO", "Usuário logou no sistema."));
-            return new ResponseEntity<>("Login efetuado com sucesso!", HttpStatus.OK);
+    @Autowired
+    private AuthenticationManager authenticationManager;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @Autowired
+    private CustomUserDetailsService userDetailsService;
+
+    public static class LoginResponse {
+        public String token;
+        public Long userId;
+        public String message;
+
+        public LoginResponse(String token, Long userId, String message) {
+            this.token = token;
+            this.userId = userId;
+            this.message = message;
         }
+    }
 
-        log.error("Erro no login: Credenciais inválidas para o email: {}", usuario.getEmail());
-        logDeAcoesRepository.save(new LogDeAcoes(null, "LOGIN_FALHA", "Tentativa de login com email: " + usuario.getEmail()));
-        return new ResponseEntity<>("Email ou senha inválidos.", HttpStatus.UNAUTHORIZED);
+    @PostMapping("/logar")
+    public ResponseEntity<?> loginUsuario(@RequestBody Usuario usuario) {
+
+        try {
+            authenticationManager.authenticate(
+                    new UsernamePasswordAuthenticationToken(usuario.getEmail(), usuario.getSenha())
+            );
+
+            final UserDetails userDetails = userDetailsService.loadUserByUsername(usuario.getEmail());
+
+            final String token = jwtUtil.generateToken(userDetails);
+
+            Long userId = ((CustomUserDetails) userDetails).getUserId();
+
+            log.info("Login bem-sucedido para o email: {}", usuario.getEmail());
+            logDeAcoesRepository.save(new LogDeAcoes(usuarioRepository.findByEmail(usuario.getEmail()), "LOGIN_SUCESSO", "Usuário logou no sistema."));
+
+            return ResponseEntity.ok(new LoginResponse(token, userId, "Login efetuado com sucesso!"));
+
+        } catch (UsernameNotFoundException e) {
+            log.error("Erro no login: Credenciais inválidas (Usuário não encontrado) para o email: {}", usuario.getEmail());
+            logDeAcoesRepository.save(new LogDeAcoes(null, "LOGIN_FALHA", "Tentativa de login com email: " + usuario.getEmail() + " (Usuário não encontrado)."));
+            return new ResponseEntity<>("Email ou senha inválidos.", HttpStatus.UNAUTHORIZED);
+        } catch (Exception e) {
+            log.error("Erro no login: Senha incorreta para o email: {}", usuario.getEmail());
+            logDeAcoesRepository.save(new LogDeAcoes(null, "LOGIN_FALHA", "Tentativa de login com email: " + usuario.getEmail() + " (Senha incorreta)."));
+            return new ResponseEntity<>("Email ou senha inválidos.", HttpStatus.UNAUTHORIZED);
+        }
     }
 
     @PostMapping(value = "/cadastroUsuario")
@@ -55,9 +103,18 @@ public class LoginController {
             return new ResponseEntity<>("Erro na validação: " + detalhesErro, HttpStatus.BAD_REQUEST);
         }
 
+        String senhaCriptografada = passwordEncoder.encode(usuario.getSenha());
+        usuario.setSenha(senhaCriptografada);
+
         usuarioRepository.save(usuario);
+
+        logDeAcoesRepository.save(new LogDeAcoes(
+                usuario,
+                "CADASTRO_USUARIO",
+                "Usuário " + usuario.getNome() + " cadastrado com sucesso."
+        ));
+
         log.info("Usuário salvo com sucesso: {}", usuario.getNome());
-        logDeAcoesRepository.save(new LogDeAcoes(usuario, "CADASTRO_USUARIO", "Usuário " + usuario.getNome() + " cadastrado."));
         return new ResponseEntity<>("Usuário cadastrado com sucesso!", HttpStatus.CREATED);
     }
 }

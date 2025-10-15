@@ -11,6 +11,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+import estoque.security.CustomUserDetails; // NOVO IMPORT
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Optional;
 
@@ -28,8 +30,16 @@ public class MovimentacaoService {
     private UsuarioRepository usuarioRepository;
 
     private Usuario getUsuarioLogado() {
-        return usuarioRepository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("Usuário de registro (ID 1) não encontrado no BD. Crie o usuário 1."));
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if (principal instanceof CustomUserDetails) {
+            Long userId = ((CustomUserDetails) principal).getUserId();
+
+            return usuarioRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado no banco de dados."));
+        }
+
+        throw new RuntimeException("Usuário não autenticado no contexto de segurança.");
     }
 
     @Transactional

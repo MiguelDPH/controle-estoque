@@ -12,6 +12,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.validation.BindingResult;
+import estoque.security.CustomUserDetails;
+import org.springframework.security.core.context.SecurityContextHolder;
 
 import java.util.Optional;
 
@@ -29,8 +31,16 @@ public class CategoriaController {
     private UsuarioRepository usuarioRepository;
 
     private Usuario getUsuarioLogado() {
-        return usuarioRepository.findById(1L)
-                .orElseThrow(() -> new RuntimeException("Usuário de registro (ID 1) não encontrado."));
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+
+        if (principal instanceof CustomUserDetails) {
+            Long userId = ((CustomUserDetails) principal).getUserId();
+
+            return usuarioRepository.findById(userId)
+                    .orElseThrow(() -> new RuntimeException("Usuário logado não encontrado no banco de dados."));
+        }
+
+        throw new RuntimeException("Usuário não autenticado no contexto de segurança.");
     }
 
     @GetMapping

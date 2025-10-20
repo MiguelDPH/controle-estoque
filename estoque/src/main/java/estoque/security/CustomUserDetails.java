@@ -11,7 +11,7 @@ import java.util.Collections;
 public class CustomUserDetails implements UserDetails {
 
     private final Long userId;
-    private final String username; // Usaremos o email como username
+    private final String username;
     private final String password;
     private final Collection<? extends GrantedAuthority> authorities;
 

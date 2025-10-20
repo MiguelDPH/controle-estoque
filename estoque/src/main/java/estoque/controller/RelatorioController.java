@@ -42,7 +42,7 @@ public class RelatorioController {
 
     @GetMapping("/movimentacao")
     public ResponseEntity<Iterable<MovimentacaoEstoque>> relatorioMovimentacoes(
-            @RequestParam(required = false) String tipo, // ENTRADA ou SAIDA
+            @RequestParam(required = false) String tipo,
             @RequestParam(required = false) Long produtoId) {
 
         Iterable<MovimentacaoEstoque> todasMovimentacoes = movimentacaoRepository.findAll();
